@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "@alch/alchemy-web3": "^1.1.7",
+    "@openzeppelin/contracts": "^4.3.2",
+    "dotenv": "^10.0.0",
+    "web3": "^1.6.0"
+  },
+  "name": "nft_test_alchemy",
+  "version": "1.0.0",
+  "main": "mint_nft.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
