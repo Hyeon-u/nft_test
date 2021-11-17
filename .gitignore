@@ -41,6 +41,7 @@ build/Release
 node_modules/
 jspm_packages/
 sol_backup/
+uploads/
 
 # TypeScript v1 declaration files
 typings/
@@ -89,3 +90,6 @@ dist
 # TernJS port file
 .tern-port
 server/server/config/dev.js
+
+#db Config
+config/config.json
