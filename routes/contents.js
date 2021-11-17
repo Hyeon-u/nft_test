@@ -9,7 +9,7 @@ const blockchain = require("../blockchain/nft_scripts");
 const db = require("../db");
 
 const contractAddress = "0xb7b6f49a45cc4f8300984cc765d55aa673076886"; // 우리 nft 계약 주소
-const pinataApiKey = "8f2b3c06ae4c56bcbfc0"; 
+const pinataApiKey = "8f2b3c06ae4c56bcbfc0";
 const pinataSecretApiKey =
   "ba21580c84f19baed77e58156448d9ba853edb68f4026996bdfad21fef54ba39";
 const pinataPreUrl = "https://gateway.pinata.cloud/ipfs/";
@@ -59,7 +59,7 @@ var upload = multer({ storage: storage }).single("file");
 router.post("/uploadFile", upload, (req, res) => {
   async function uploadFile() {
     try {
-    //   console.log("req file: ", req.file);
+      //   console.log("req file: ", req.file);
       console.log("uploadFile: ", req.body);
       //   return res.json({ success: true, url: res.req.file.path });
 
@@ -70,14 +70,18 @@ router.post("/uploadFile", upload, (req, res) => {
       const name = req.body.name; // 그림 제목
       const description = req.body.description; // 그림 설명
       const file = res.req.file; // 업로드 된 파일
-      
+      console.log("file: ", file);
+
       console.log("uploadImage:url:", file.path);
 
       // ipfs 이미지 업로드
       let result = await pinFileToIPFS(file.path);
 
-      if(result.isDuplicate) {
-        return res.json({ result: false, errMsg: "Is duplecate Img"});
+      if (result.isDuplicate) {
+          fs.unlink(file.path, (err) => {
+              console.log('Is Duplicate : ', file.filename)
+          })
+        return res.json({ result: false, errMsg: "Is duplecate Img" });
       }
 
       let hash = result.IpfsHash;
@@ -86,8 +90,8 @@ router.post("/uploadFile", upload, (req, res) => {
       // json 파일 생성
       let hashJson = util.makeJson(name, description, imgUrl);
       let hashJsonStr = JSON.stringify(hashJson);
-      const hashJsonName = hash + ".json";
-      fs.writeFileSync('/uploads'+hashJsonName, hashJsonStr);
+      const hashJsonName = file.path.split('.')[0] + ".json"; // 이미지와 같은 파일명의 json 파일로 저장
+      fs.writeFileSync(hashJsonName, hashJsonStr);
 
       // ipfs json 파일 업로드
       let jsonHash = await pinFileToIPFS(hashJsonName);
@@ -117,7 +121,7 @@ router.post("/mintnft", upload, (req, res) => {
   async function mintNft() {
     try {
       const userId = req.body.id;
-    //   const contents = req.body.contents;
+      //   const contents = req.body.contents;
       const contents_no = req.body.contents_no;
 
       const address = await db.getUserById(userId).wallet_address;
@@ -164,14 +168,16 @@ router.post("/orderBuy", upload, (req, res) => {
       const contentsInfo = await db.getContentsByNo(contents_no);
 
       const isBuyable = contentsInfo.buyable; // 구매 가능한 컨텐츠 인가
-      if(!isBuyable) {
-        return res.status(400).json({ result: false, errMsg: "This item is not for sale" });
+      if (!isBuyable) {
+        return res
+          .status(400)
+          .json({ result: false, errMsg: "This item is not for sale" });
       }
 
       let jsonUrl = contentsInfo.jsonlocation;
       let num_no = Number(contents_no);
       let hash = await blockchain.mintCompanyNFT(jsonUrl);
-    //   console.log("hash: ", hash.transactionHash);
+      //   console.log("hash: ", hash.transactionHash);
 
       //   const result = await db.changeOwner(num_no, id);
       const result = await db.setBuy(num_no, id, hash.transactionHash);
@@ -223,31 +229,33 @@ router.get("/getnftlist", (req, res) => {
 
 // contents 정보 가져오기 (NFT가 발급 안되어 있을 수 있으므로 contents_no 사용)
 router.get("/getContentsInfo", (req, res) => {
-    console.log("getContentsInfo");
-    async function getContentsInfo() {
-      try {
-          const contents_no = req.query.contents_no;
-        const result = await db.getContentsByNo(contents_no);
+  console.log("getContentsInfo");
+  async function getContentsInfo() {
+    try {
+      const contents_no = req.query.contents_no;
+      const result = await db.getContentsByNo(contents_no);
 
-        if(!result) {
-            return res.status(200).json({ result: false, errMsg:'Wrong contents number' });
-        }
-
-        const contentsInfo = {
-            no = result.no,
-        title = result.name,
-        description = result.description,
-        image = result.filelocation,
-        contractAddress = contractAddress
-        }
-
-        return res.status(200).json({ result: true, info: contentsInfo });
-      } catch (e) {
-        console.log("getContentsInfo error: ", e);
+      if (!result) {
+        return res
+          .status(200)
+          .json({ result: false, errMsg: "Wrong contents number" });
       }
+
+      let contentsInfo = {
+        no: result.no,
+        title: result.name,
+        description: result.description,
+        image: result.filelocation,
+        contractAddress: contractAddress,
+      };
+
+      return res.status(200).json({ result: true, info: contentsInfo });
+    } catch (e) {
+      console.log("getContentsInfo error: ", e);
     }
-    getContentsInfo(req, res);
-  });
+  }
+  getContentsInfo(req, res);
+});
 
 // userId로 그 유저의 컨텐츠 목록 가져오기
 router.post("/getusercontents", upload, (req, res) => {
@@ -279,7 +287,10 @@ router.post("/checkUserContents", upload, (req, res) => {
       const isRight = await db.checkUserContents(userId, nftId);
       console.log(`'${userId}' has Right? : `, isRight);
       if (!isRight) {
-        return res.json({ result: false, errMsg: "You do not have permission" });
+        return res.json({
+          result: false,
+          errMsg: "You do not have permission",
+        });
       }
 
       return res.json({ result: true });
@@ -304,29 +315,25 @@ async function pinFileToIPFS(fileName) {
   });
 
   const result = res.data;
-  console.log('IPFS result: ', result);
+  console.log("IPFS result: ", result);
 
   return result;
 }
 
 async function test() {
-//   const name = "mountain";
-//   const description = "NFT TEST Mountain";
-//   const file = "./uploads/mountains-g70f1472b1_1920.jpg";
-
-//   let hash = await pinFileToIPFS(file);
-//   console.log(hash);
-//   let imgUrl = pinataPreUrl + hash;
-
-//   let hashJson = util.makeJson(name, description, imgUrl);
-//   let hashJsonStr = JSON.stringify(hashJson);
-//   const hashJsonName = hash + ".json";
-//   fs.writeFileSync(hashJsonName, hashJsonStr);
-
-//   let jsonHash = await pinFileToIPFS(hashJsonName);
-//   console.log("jsonHash: ", jsonHash);
+  //   const name = "mountain";
+  //   const description = "NFT TEST Mountain";
+  //   const file = "./uploads/mountains-g70f1472b1_1920.jpg";
+  //   let hash = await pinFileToIPFS(file);
+  //   console.log(hash);
+  //   let imgUrl = pinataPreUrl + hash;
+  //   let hashJson = util.makeJson(name, description, imgUrl);
+  //   let hashJsonStr = JSON.stringify(hashJson);
+  //   const hashJsonName = hash + ".json";
+  //   fs.writeFileSync(hashJsonName, hashJsonStr);
+  //   let jsonHash = await pinFileToIPFS(hashJsonName);
+  //   console.log("jsonHash: ", jsonHash);
 }
-
 
 // pinFileToIPFS("./uploads/mountains-g70f1472b1_1920.jpg");
 
