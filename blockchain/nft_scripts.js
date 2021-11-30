@@ -1,4 +1,5 @@
 require("dotenv").config();
+const util = require('./eth_utils');
 const axios = require("axios");
 // const API_URL = process.env.API_URL_ROPSTEN;
 const API_URL = process.env.API_URL_RINKEBY;
@@ -204,6 +205,29 @@ async function companyTransferNFT(toAddress, tokenId) {
   }
 }
 
+async function ethBalance(address) {
+  try {
+    const wei_balance = await web3.eth.getBalance(address, "latest");
+    const eth_balance = util.weiToEther(wei_balance);
+    let return_balance;
+    if (eth_balance.indexOf('.') === -1 ) {
+      return_balance = eth_balance;
+    } else {
+      let balanceArray = eth_balance.split('.');
+      
+      if (balanceArray[1].length < 5) {
+        return_balance = balanceArray[0] + '.' + balanceArray[1];
+      } else {
+        return_balance = balanceArray[0] + '.' + balanceArray[1].substring(0, 4);
+      }
+    }
+    
+    return return_balance;    
+  } catch (e) {
+    console.log("balance error: ", e);
+  }
+}
+
 // 이더리움 전송
 async function sendEther(fromAddress, toAddress, fromPK, amount) {
   try {
@@ -356,7 +380,7 @@ async function check_tx() {
     let length = list.length;
 
     if (!length) {
-      console.log("MInting list length: 0");
+      // console.log("MInting list length: 0");
     } else {
       console.log("MInting list length: ", list.length);
       await Promise.all(
@@ -403,12 +427,13 @@ async function start() {
   // result = await name();
   // result = await ownerOf(1);
   // result = await tokensOfOwner("0x3d9FF2265576eFe225586d271bf2C28e8d6a5537");
-  result = await tokenURI(12);
+  // result = await tokenURI(12);
   // result = await totalSupply();
   // result = await ethCreate();
   // result = await getHistorybyAddress(
   //   "0x3d9FF2265576eFe225586d271bf2C28e8d6a5537"
   // );
+  result = await ethBalance("0x388d66AE970B9Bc4150774F75b5bBD3AC15be920");
   console.log("result: ", result);
 }
 
@@ -428,6 +453,7 @@ check_tx();
 module.exports = {
   mintNFT,
   transferNFT,
+  ethBalance,
   sendEther,
 
   name,

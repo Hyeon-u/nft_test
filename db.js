@@ -1,36 +1,40 @@
 const models = require("./models");
-const Contents = require("./models/contents")
-const User = require("./models/user")
+const Contents = require("./models/contents");
+const User = require("./models/user");
 // const blockchain = require("./blockchain/nft_scripts");
 
 // 유저 생성
 async function createUser(
-  id,
+  userId,
   password,
   name,
   email,
   wallet_address,
-  wallet_privatekey
+  wallet_privatekey,
+  role
 ) {
   const result = await models.User.create({
-    id: id,
+    userid: userId,
     password: password,
     name: name,
     email: email,
     wallet_address: wallet_address,
     wallet_privatekey: wallet_privatekey,
+    role: role,
   });
 
   if (result) {
     console.log("Success");
+    return result;
   } else {
     console.log("Fail");
+    return null;
   }
 }
 
 // ID로 유저 패스워드 수정
-async function updateUserById(id, newPassword) {
-  const exist = await getUserById(id);
+async function updateUserById(userId, newPassword) {
+  const exist = await getUserById(userId);
   if (!exist) {
     console.log("not find user");
     return;
@@ -49,9 +53,16 @@ async function updateUserById(id, newPassword) {
 }
 
 // ID로 유저검색
-async function getUserById(id) {
+async function getUserById(userId) {
   const result = await models.User.findOne({
-    where: { id: id },
+    where: { userid: userId },
+  });
+  return result.dataValues;
+}
+
+async function checkUserByIdAndToken(userId, token) {
+  const result = await models.User.findOne({
+    where: { userid: userId, token: token },
   });
   return result;
 }
@@ -63,10 +74,76 @@ async function getUserList() {
 }
 
 // ID로 유저삭제
-async function deleteUserbyId(id) {
+async function deleteUserbyId(userId) {
   models.User.destroy({
-    where: { id: id },
+    where: { userid: userId },
   }).then((_) => console.log("Delete Success"));
+}
+
+// 유저 토큰 업데이트
+async function updateUserToken(userId, token) {
+  try {
+    const exist = await models.User.findOne({
+      where: { userid: userId },
+    });
+
+    if (exist) {
+      const result = await exist.update({
+        token: token,
+      });
+      // console.log('result', result);
+      return result;
+    } else {
+      console.log("Not found user");
+      return null;
+    }
+  } catch (e) {
+    console.log("updateUserToken Error: ", e);
+    return e;
+  }
+}
+// // 유저 토큰 업데이트
+// async function updateUserToken(userId, token, token_exp) {
+//   try {
+//     const exist = await models.User.findOne({
+//       where: {id: userId}
+//     });
+
+//     if (exist) {
+//       const result = await exist.update({
+//         token: token,
+//         token_exp: token_exp
+//       })
+//       console.log('result', result);
+//     } else {
+//       console.log("Not found user");
+//     }
+//   } catch (e) {
+//     console.log("updateMintingContents Error: ", e);
+//   }
+// }
+
+// 유저 잔액 업데이트
+async function updateUserBalance(userId, balance) {
+  try {
+    const exist = await models.User.findOne({
+      where: { userid: userId },
+    });
+
+    if (exist) {
+      const result = await exist.update({
+        eth_balance: balance,
+      });
+      // console.log('result', result);
+      return result;
+    } else {
+      console.log("Not found user");
+      return null;
+    }
+  } catch (e) {
+    console.log("updateUserBalance Error: ", e);
+    return e;
+  }
 }
 
 // 컨텐츠 최초 저장
@@ -76,7 +153,7 @@ async function makeContents(
   description,
   jsonLocation,
   fileLocation,
-  mint_tx
+  price
 ) {
   try {
     const result = await models.Contents.create({
@@ -86,8 +163,8 @@ async function makeContents(
       jsonlocation: jsonLocation,
       filelocation: fileLocation,
       status: "UPLOAD",
-      mint_tx: mint_tx,
-      buyable: true
+      price: price,
+      buyable: true,
     });
 
     if (result) {
@@ -102,20 +179,17 @@ async function makeContents(
 }
 
 // 컨텐츠 상태 업데이트
-async function updateStatusContents(
-  nftId,
-  status
-) {
+async function updateStatusContents(nftId, status) {
   try {
     const exist = await models.Contents.findOne({
-      where: {mint_tx: mint_tx}
+      where: { mint_tx: mint_tx },
     });
 
     if (exist) {
       const result = await exist.update({
         nftid: nftId,
-        status: status
-      })
+        status: status,
+      });
     } else {
       console.log("Fail");
     }
@@ -128,14 +202,14 @@ async function updateStatusContents(
 async function updateMintingContents(contents_no, mint_tx) {
   try {
     const exist = await models.Contents.findOne({
-      where: {no: contents_no}
+      where: { id: contents_no },
     });
 
     if (exist) {
       const result = await exist.update({
         mint_tx: mint_tx,
-        status: "MINTING"
-      })
+        status: "MINTING",
+      });
     } else {
       console.log("Fail");
     }
@@ -148,16 +222,16 @@ async function updateMintingContents(contents_no, mint_tx) {
 async function updateSuccessMintingContents(mint_tx, nftId) {
   try {
     const exist = await models.Contents.findOne({
-      where: {mint_tx: mint_tx}
+      where: { mint_tx: mint_tx },
     });
 
-    console.log('db] exist: ', exist);
+    console.log("db] exist: ", exist);
 
     if (exist) {
       const result = await exist.update({
         nftid: nftId,
-        status: "DONE"
-      })
+        status: "DONE",
+      });
     } else {
       console.log("Fail");
     }
@@ -169,7 +243,6 @@ async function updateSuccessMintingContents(mint_tx, nftId) {
 // 컨텐츠 민팅중 인 것만 가져오기
 async function getMintingContents() {
   try {
-
     const lists = await models.Contents.findAll({
       // include:[
       //   {
@@ -177,7 +250,7 @@ async function getMintingContents() {
       //     attributes: ['wallet_address']
       //   }
       // ],
-      where: {status: "MINTING"}
+      where: { status: "MINTING" },
     });
 
     return lists;
@@ -188,27 +261,56 @@ async function getMintingContents() {
 
 // no로 컨텐츠 정보 가져오기
 async function getContentsByNo(no) {
-  try{
+  try {
     const result = await models.Contents.findOne({
-      where: {no:no}
+      where: { id: no },
     });
 
-    return result
-  } catch(e) {
+    return result.dataValues;
+  } catch (e) {
     console.log("getContentsByNo error: ", e);
   }
 }
 
-// 구매 가능한 컨텐츠 목록 가져오기
-async function getBuyableContents() {
+// nftID 로 컨텐츠 정보 가져오기
+async function getContentsById(tokenId) {
   try {
-    const result = await models.Contents.findAll({
-      where: {buyable: true}
+    const result = await models.Contents.findOne({
+      where: { nftid: tokenId },
     });
 
     return result;
-  } catch(e) {
+  } catch (e) {
+    console.log("getContentsById error: ", e);
+  }
+}
+
+// 구매 가능한 컨텐츠 목록 내용 전부 가져오기
+async function getBuyableContents() {
+  try {
+    const result = await models.Contents.findAll({
+      where: { buyable: true },
+      order: [["updatedAt", "DESC"]],
+    });
+
+    return result;
+  } catch (e) {
     console.log("getBuyableContents error", e);
+  }
+}
+
+// 구매 가능한 컨텐츠 목록 가져오기
+async function getBuyableContentsList() {
+  try {
+    const result = await models.Contents.findAll({
+      where: { buyable: true },
+      attributes: ["id", "name", "filelocation", "price", "updatedAt"],
+      order: [["updatedAt", "DESC"]],
+    });
+
+    return result;
+  } catch (e) {
+    console.log("getBuyableContentsList error", e);
   }
 }
 
@@ -233,18 +335,17 @@ async function changeOwner(contentsNo, newOwnerId) {
   // }
 
   const exist = await models.Contents.findOne({
-    where: { no: contentsNo },
+    where: { id: contentsNo },
   });
 
   console.log(exist);
   if (!exist) {
-    
     // 에러: 해당 아이템을 찾을 수 없음
   }
 
   let result = await exist.update({
     ownerid: newOwnerId,
-    buyable: false
+    buyable: false,
   });
   console.log("result: ", result);
   return result;
@@ -252,12 +353,11 @@ async function changeOwner(contentsNo, newOwnerId) {
 
 async function setBuy(contentsNo, newOwnerId, tx_hash) {
   const exist = await models.Contents.findOne({
-    where: { no: contentsNo },
+    where: { id: contentsNo },
   });
 
   console.log(exist);
   if (!exist) {
-    
     // 에러: 해당 아이템을 찾을 수 없음
   }
 
@@ -265,50 +365,65 @@ async function setBuy(contentsNo, newOwnerId, tx_hash) {
     ownerid: newOwnerId,
     mint_tx: tx_hash,
     status: "MINTING",
-    buyable: false
+    buyable: false,
   });
   console.log("result: ", result);
   return result;
-  
 }
 
+// 해당 유저의 컨텐츠 가져오기
 async function getUserContents(userId) {
-  try{
+  try {
     const exist = await models.User.findOne({
-      where: { id: userId }
+      where: { userid: userId },
     });
 
-    if(!exist) {
+    if (!exist) {
       //유저 없음
       return;
     }
 
     const result = await models.Contents.findAll({
-      where: {ownerid: userId}
-    })
+      where: { ownerid: userId },
+      order: [["updatedAt", "DESC"]],
+    });
 
     return result;
-
-  } catch(e) {
-    console.log(e)
-  }  
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 async function checkUserContents(userId, nftId) {
-  try{
+  try {
     const exist = await models.Contents.findOne({
-      where: { ownerid: userId, nftid: nftId }
+      where: { ownerid: userId, nftid: nftId },
     });
 
-    if(exist) {
+    if (exist) {
       return true;
     } else {
       return false;
     }
+  } catch (e) {
+    console.log(e);
+  }
+}
 
-  } catch(e) {
-    console.log(e)
-  }  
+async function checkUserContentsNo(userId, contents_no) {
+  try {
+    const exist = await models.Contents.findOne({
+      where: { ownerid: userId, id: contents_no },
+    });
+
+    if (exist) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 async function test() {
@@ -326,12 +441,19 @@ async function test() {
   // let result = await deleteUserbyId("asdf");
 
   // await updateUserById("abcd", "asdfg");
-  result = await makeContents('aass', "mountain", "mountain description", "jsonLocation", "fileLocation", "0x9b13e7f055898f56e89765ed4188af73bf830bdf5e5d3bf80526c8cd360a0165");
+  result = await makeContents(
+    "aass",
+    "mountain",
+    "mountain description",
+    "jsonLocation",
+    "fileLocation",
+    "0x9b13e7f055898f56e89765ed4188af73bf830bdf5e5d3bf80526c8cd360a0165"
+  );
 
   console.log(result);
 
   let list = await getMintingContents();
-  console.log('list: ', list)
+  console.log("list: ", list);
 }
 
 // test();
@@ -341,16 +463,22 @@ module.exports = {
   updateUserById,
   getUserById,
   getUserList,
+  updateUserToken,
+  updateUserBalance,
   deleteUserbyId,
   makeContents,
   updateStatusContents,
   changeOwner,
   getContentsByNo,
+  getContentsById,
   updateMintingContents,
   updateSuccessMintingContents,
   getMintingContents,
   getBuyableContents,
+  getBuyableContentsList,
   setBuy,
   getUserContents,
-  checkUserContents
+  checkUserContents,
+  checkUserContentsNo,
+  checkUserByIdAndToken,
 };

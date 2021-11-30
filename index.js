@@ -17,6 +17,7 @@ app.use(express.urlencoded({ extended:false}))
 
 app.use("/api/users", require("./routes/users"));
 app.use("/api/contents", require("./routes/contents"));
+app.use("/api/wallet", require("./routes/wallet"));
 
 const port = process.env.PORT || 5000;
 

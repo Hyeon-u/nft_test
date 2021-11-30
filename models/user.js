@@ -14,17 +14,20 @@ module.exports = (sequelize, DataTypes) => {
     }
   };
   User.init({
-    no: {
+    id: {
       type: DataTypes.INTEGER,
       primaryKey:true
     },
-    id: DataTypes.STRING,
+    userid: DataTypes.STRING,
     password: DataTypes.STRING,
     name: DataTypes.STRING,
     email: DataTypes.STRING,
     role: DataTypes.INTEGER,
     wallet_address: DataTypes.STRING,
-    wallet_privatekey: DataTypes.STRING
+    wallet_privatekey: DataTypes.STRING,
+    token: DataTypes.STRING,
+    token_exp: DataTypes.INTEGER,
+    eth_balance: DataTypes.STRING
   }, {
     timestamps: true,
     sequelize,

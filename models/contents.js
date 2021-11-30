@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   };
   Contents.init({
-    no: {
+    id: {
       type:DataTypes.INTEGER,
       primaryKey:true
     },
@@ -29,7 +29,11 @@ module.exports = (sequelize, DataTypes) => {
     filelocation: DataTypes.STRING,
     status: DataTypes.STRING,
     mint_tx: DataTypes.STRING,
-    buyable: DataTypes.BOOLEAN
+    buyable: DataTypes.BOOLEAN,
+    price: {
+      type:DataTypes.STRING,
+      defaultValue: '0'
+    }
   }, {
     sequelize,
     modelName: 'Contents',
