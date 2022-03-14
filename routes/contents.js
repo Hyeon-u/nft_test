@@ -42,7 +42,7 @@ var upload = multer({ storage: storage }).single("file");
 router.post("/uploadFile", upload, (req, res) => {
   async function uploadFile() {
     try {
-      //   console.log("req file: ", req.file);
+        // console.log("req file: ", req.file);
       // console.log("uploadFile: ", req.body);
       //   return res.json({ success: true, url: res.req.file.path });
 
@@ -210,7 +210,8 @@ router.post("/orderBuy", auth, (req, res) => {
 
       let jsonUrl = contentsInfo.jsonlocation;
       let num_no = Number(contents_no);
-      let hash = await blockchain.mintCompanyNFT(jsonUrl);
+      let hash = await blockchain.mintNFT(userAddress, jsonUrl); // 회사가 만들어준 유저 월렛에 넣기
+      // let hash = await blockchain.mintCompanyNFT(jsonUrl); // 회사 메인 월렛에 넣기
       //   console.log("hash: ", hash.transactionHash);
 
       //   const result = await db.changeOwner(num_no, id);

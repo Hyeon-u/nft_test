@@ -6,7 +6,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 app.use(cors());
 
-const models = require("./models");
+const {sequelize} = require("./models");
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -19,7 +19,15 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/contents", require("./routes/contents"));
 app.use("/api/wallet", require("./routes/wallet"));
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5001;
+
+sequelize.sync({ force: false})
+.then(() => {
+  console.log('db connect success');
+})
+.catch((err) => {
+  console.log(err);
+});
 
 app.listen(port, () => {
   console.log(`Server Running at ${port}`);

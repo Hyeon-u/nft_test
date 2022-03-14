@@ -1,7 +1,11 @@
+require("dotenv").config();
 const models = require("./models");
 const Contents = require("./models/contents");
 const User = require("./models/user");
 // const blockchain = require("./blockchain/nft_scripts");
+
+const PUBLIC_KEY = process.env.PUBLIC_KEY;
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
 // 유저 생성
 async function createUser(
@@ -21,6 +25,28 @@ async function createUser(
     wallet_address: wallet_address,
     wallet_privatekey: wallet_privatekey,
     role: role,
+  });
+
+  if (result) {
+    console.log("Success");
+    return result;
+  } else {
+    console.log("Fail");
+    return null;
+  }
+}
+
+// admin 생성
+async function createAdmin(hash) {
+  const result = await models.User.create({
+    id:1,
+    userid: 'admin',
+    password: hash,
+    name: 'admin',
+    email: 'admin@admin.com',
+    wallet_address: PUBLIC_KEY,
+    wallet_privatekey: PRIVATE_KEY,
+    role: 0,
   });
 
   if (result) {
@@ -57,7 +83,13 @@ async function getUserById(userId) {
   const result = await models.User.findOne({
     where: { userid: userId },
   });
-  return result.dataValues;
+  // console.log('getUserById result: ', result);
+
+  if (!result) {
+    return null;
+  } else {
+    return result.dataValues;
+  }
 }
 
 async function checkUserByIdAndToken(userId, token) {
@@ -460,6 +492,7 @@ async function test() {
 
 module.exports = {
   createUser,
+  createAdmin,
   updateUserById,
   getUserById,
   getUserList,

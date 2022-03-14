@@ -83,51 +83,68 @@ router.post("/register", (req, res) => {
   register();
 });
 
+
+
 router.post("/login", (req, res) => {
   async function login() {
-    console.log("login body: ", req.body);
+    // console.log("login body: ", req.body);
     const userid = req.body.user_id;
     const isExistId = await db.getUserById(userid);
+
     if (!isExistId) {
-      console.log("user not exist");
-      return res.json({ result: false, errMsg: "doesn't exist ID" });
-    }
-    // console.log("user", isExistId);
-
-    const password = req.body.password;
-
-    bcrypt.compare(password, isExistId.password, async function (err, isMatch) {
-      if (err) {
-        return res.json({ result: false, errMsg: "server Error" });
-      }
-
-      if (isMatch) {
-        console.log("password matched");
-        let result = await generateToken(userid);
-
-        return res.cookie("w_auth", result.token).json({ result: true });
+      // admin이 없을 경우 만든다
+      if (userid === 'admin') {
+        const hash = await getPasswordHash('admin', async (hash) => {
+          // console.log("hash:", hash);
+          let dbResult = await db.createAdmin(hash);
+          // console.log('create admin: ' + dbResult);
+          if (dbResult) {
+            let result = await generateToken(userid);
+            return res.cookie("w_auth", result.token).json({ result: true });
+          }
+        });
       } else {
-        console.log("password not matched");
-        return res.json({ result: false, errMsg: "doesn't match ID, PW" });
+        console.log("user not exist");
+        return res.json({ result: false, errMsg: "doesn't exist ID" });
       }
-    });
+    } else {
+      // console.log("user", isExistId);
+
+      const password = req.body.password;
+
+      bcrypt.compare(password, isExistId.password, async function (err, isMatch) {
+        if (err) {
+          return res.json({ result: false, errMsg: "server Error" });
+        }
+
+        if (isMatch) {
+          console.log("password matched");
+          let result = await generateToken(userid);
+
+          return res.cookie("w_auth", result.token).json({ result: true });
+        } else {
+          console.log("password not matched");
+          return res.json({ result: false, errMsg: "doesn't match ID, PW" });
+        }
+      });
+    }
   }
   login(req, res);
 });
 
 router.get("/logout", auth, async (req, res) => {
   async function logout() {
-  try {
-    console.log('logout req', req.user.dataValues);
-    let result = await db.updateUserToken(req.user.dataValues.userid, "");
-    if (result) {
-      return res.send({ result: true });
+    try {
+      console.log('logout req', req.user.dataValues);
+      let result = await db.updateUserToken(req.user.dataValues.userid, "");
+      if (result) {
+        return res.send({ result: true });
+      }
+    } catch (e) {
+      return res.json({ result: false, errMsg: e });
     }
-  } catch (e) {
-    return res.json({ result: false, errMsg: e });
   }
-}
-logout(req, res);
+  logout(req, res);
 });
 
 async function getPasswordHash(password, cb) {
@@ -160,6 +177,14 @@ async function generateToken(userId) {
   await db.updateUserToken(userId, token);
 
   return result;
+}
+
+async function _checkExistAdmin() {
+  const isExist = await db.getUserById('admin');
+  if (!isExist) {
+    await db.createAdmin();
+    return
+  }
 }
 
 

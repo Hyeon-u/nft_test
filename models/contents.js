@@ -16,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
   Contents.init({
     id: {
       type:DataTypes.INTEGER,
+      autoIncrement: true, //
       primaryKey:true
     },
     ownerid: DataTypes.STRING,
