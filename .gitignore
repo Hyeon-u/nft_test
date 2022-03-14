@@ -62,8 +62,8 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
-.env.test
+# .env
+# .env.test
 
 # Next.js build output
 .next
@@ -90,6 +90,3 @@ dist
 # TernJS port file
 .tern-port
 server/server/config/dev.js
-
-#db Config
-config/config.json

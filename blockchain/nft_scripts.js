@@ -1,5 +1,5 @@
 require("dotenv").config();
-const util = require('./eth_utils');
+const util = require("./eth_utils");
 const axios = require("axios");
 // const API_URL = process.env.API_URL_ROPSTEN;
 const API_URL = process.env.API_URL_RINKEBY;
@@ -210,19 +210,20 @@ async function ethBalance(address) {
     const wei_balance = await web3.eth.getBalance(address, "latest");
     const eth_balance = util.weiToEther(wei_balance);
     let return_balance;
-    if (eth_balance.indexOf('.') === -1 ) {
+    if (eth_balance.indexOf(".") === -1) {
       return_balance = eth_balance;
     } else {
-      let balanceArray = eth_balance.split('.');
-      
+      let balanceArray = eth_balance.split(".");
+
       if (balanceArray[1].length < 5) {
-        return_balance = balanceArray[0] + '.' + balanceArray[1];
+        return_balance = balanceArray[0] + "." + balanceArray[1];
       } else {
-        return_balance = balanceArray[0] + '.' + balanceArray[1].substring(0, 4);
+        return_balance =
+          balanceArray[0] + "." + balanceArray[1].substring(0, 4);
       }
     }
-    
-    return return_balance;    
+
+    return return_balance;
   } catch (e) {
     console.log("balance error: ", e);
   }
@@ -402,7 +403,7 @@ async function check_tx() {
       } catch (e) {
         console.log("check_tx error: ", e);
       }
-    }, 5000);
+    }, 10000);
   } catch (e) {
     console.log("check_tx error: ", e);
   }
@@ -449,7 +450,7 @@ async function start() {
 //   PRIVATE_KEY,
 //   1
 // );
-check_tx();
+// check_tx();
 module.exports = {
   mintNFT,
   transferNFT,
