@@ -15,6 +15,10 @@
 - alchemy (https://www.alchemy.com/)에 가입 후 API url을 발급받아 /blockchain/nft_scripts.js 의 'API_URL'을 바꿔준다
 
 
+4. 이더리움 월렛 생성
+- 월렛 생성 후 .env 파일의 PUBLIC_KEY에 주소를, PRIVATE_KEY에 개인키를 넣는다
+
+
 
 설치
 
